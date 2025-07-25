@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import io from "socket.io-client";
+import { io } from "socket.io-client";
 import {
   sendMessage,
   getPrivateMessages,
@@ -7,9 +7,12 @@ import {
   getPatients,
 } from "../services/api";
 
-// ✅ Use environment variable for Socket.IO URL
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
-const socket = io(SOCKET_URL);
+
+const socket = io(SOCKET_URL, {
+  transports: ["websocket"],
+  withCredentials: true,
+});
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -25,14 +28,12 @@ const Chat = () => {
 
   const messagesEndRef = useRef(null);
 
-  // ✅ Scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // ✅ Fetch Doctors or Patients
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -46,7 +47,6 @@ const Chat = () => {
     fetchUsers();
   }, [userRole]);
 
-  // ✅ Load chat history
   const loadMessages = useCallback(async () => {
     try {
       if (selectedUser && userId) {
@@ -59,7 +59,6 @@ const Chat = () => {
     }
   }, [selectedUser, userId]);
 
-  // ✅ Join room if saved
   useEffect(() => {
     if (room) {
       socket.emit("joinRoom", room);
@@ -67,7 +66,6 @@ const Chat = () => {
     }
   }, [room, loadMessages]);
 
-  // ✅ Real-time listener
   useEffect(() => {
     const handleIncomingMessage = (newMessage) => {
       if (newMessage.room === room) {
@@ -79,7 +77,6 @@ const Chat = () => {
     return () => socket.off("message", handleIncomingMessage);
   }, [room]);
 
-  // ✅ Select user and join new room
   const joinRoom = (user) => {
     const newRoom = `private-${[userId, user._id].sort().join("-")}`;
     setRoom(newRoom);
@@ -92,19 +89,17 @@ const Chat = () => {
     loadMessages();
   };
 
-  // ✅ Send message
   const handleSend = async () => {
     if (!message.trim() || !selectedUser) return;
 
     const newMsg = {
       text: message,
       sender: userId,
-      senderName: userName || "Unknown", // ✅ Always include senderName
+      senderName: userName || "Unknown",
       room,
       receiver: selectedUser._id,
     };
 
-    // Optimistic update
     setMessages((prev) => [...prev, newMsg]);
 
     try {
@@ -118,25 +113,25 @@ const Chat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md p-4">
-        <div className="mb-4 text-sm text-gray-600">
+      <aside className="w-1/4 bg-white border-r border-gray-300 h-screen overflow-y-auto">
+        <div className="p-4 text-sm text-gray-600 border-b">
           Logged in as: <span className="font-semibold">{userName}</span> ({userRole})
         </div>
-        <h3 className="font-bold text-green-700 mb-4">
+        <h3 className="p-4 font-bold text-green-700">
           {userRole === "patient" ? "Doctors" : "Patients"}
         </h3>
         <ul>
           {usersList.length === 0 ? (
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 text-sm px-4">
               No {userRole === "patient" ? "doctors" : "patients"} available
             </p>
           ) : (
             usersList.map((u) => (
               <li
                 key={u._id}
-                className={`p-2 rounded cursor-pointer hover:bg-green-100 ${
+                className={`p-3 hover:bg-green-100 cursor-pointer ${
                   selectedUser?._id === u._id ? "bg-green-200 font-semibold" : ""
                 }`}
                 onClick={() => joinRoom(u)}
@@ -150,29 +145,28 @@ const Chat = () => {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        <div className="sticky top-0 bg-gray-100 z-10 text-center py-3 border-b">
-          <h2 className="text-xl font-bold text-green-700">
+        <div className="bg-white shadow px-4 py-3 border-b">
+          <h2 className="text-lg font-bold text-green-700 text-center">
             {selectedUser
               ? `Chat with ${selectedUser.name}`
               : "Select a user to start chat"}
           </h2>
         </div>
 
-        <div className="bg-white shadow-md rounded w-full max-w-2xl mx-auto p-4 flex flex-col mt-4">
-          <div className="flex-1 overflow-y-auto h-80 border p-4 mb-4 space-y-2">
+        <div className="flex-1 flex flex-col p-4">
+          <div className="flex-1 overflow-y-auto bg-white rounded shadow p-4 mb-4">
             {messages.length === 0 ? (
               <p className="text-gray-500 text-center">No messages yet...</p>
             ) : (
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 rounded-lg max-w-xs ${
+                  className={`p-2 rounded-lg max-w-xs mb-2 ${
                     msg.sender === userId
                       ? "bg-green-100 self-end text-right"
                       : "bg-gray-200"
                   }`}
                 >
-                  {/* ✅ Show sender name if not you */}
                   {msg.sender !== userId && (
                     <p className="text-xs text-gray-600 font-semibold mb-1">
                       {msg.senderName}
@@ -192,7 +186,7 @@ const Chat = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 border p-2 rounded-l"
+                className="flex-1 border border-gray-300 rounded-l px-3 py-2"
               />
               <button
                 onClick={handleSend}
