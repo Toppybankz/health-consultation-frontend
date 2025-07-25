@@ -1,11 +1,20 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5001/api"; // Backend Base URL
+// ✅ Use environment variable for API base URL
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
+
+// ✅ Create a reusable Axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 // ✅ Register User
 export const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/auth/register`, userData);
+    const response = await api.post("/auth/register", userData);
     return response.data;
   } catch (error) {
     console.error("Register Error:", error);
@@ -16,7 +25,7 @@ export const registerUser = async (userData) => {
 // ✅ Login User
 export const loginUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, userData);
+    const response = await api.post("/auth/login", userData);
     return response.data;
   } catch (error) {
     console.error("Login Error:", error);
@@ -27,7 +36,7 @@ export const loginUser = async (userData) => {
 // ✅ Fetch All Group Chat Messages
 export const fetchMessages = async () => {
   try {
-    const response = await axios.get(`${API_URL}/chat/messages`);
+    const response = await api.get("/chat/messages");
     return response.data;
   } catch (error) {
     console.error("Fetch Messages Error:", error);
@@ -41,7 +50,7 @@ export const getMessages = fetchMessages;
 // ✅ Send Chat Message (Group or Private)
 export const sendMessage = async (messageData) => {
   try {
-    const response = await axios.post(`${API_URL}/chat/send`, messageData);
+    const response = await api.post("/chat/send", messageData);
     return response.data;
   } catch (error) {
     console.error("Send Message Error:", error);
@@ -52,7 +61,7 @@ export const sendMessage = async (messageData) => {
 // ✅ Fetch Private Messages Between Two Users
 export const getPrivateMessages = async (senderId, receiverId) => {
   try {
-    const response = await axios.get(`${API_URL}/chat/private/${senderId}/${receiverId}`);
+    const response = await api.get(`/chat/private/${senderId}/${receiverId}`);
     return response.data;
   } catch (error) {
     console.error("Fetch Private Messages Error:", error);
@@ -63,7 +72,7 @@ export const getPrivateMessages = async (senderId, receiverId) => {
 // ✅ Fetch All Doctors
 export const getDoctors = async () => {
   try {
-    const response = await axios.get(`${API_URL}/auth/doctors`);
+    const response = await api.get("/auth/doctors");
     return response.data;
   } catch (error) {
     console.error("Fetch Doctors Error:", error);
@@ -71,10 +80,10 @@ export const getDoctors = async () => {
   }
 };
 
-// ✅ NEW: Fetch All Patients (for doctors)
+// ✅ Fetch All Patients
 export const getPatients = async () => {
   try {
-    const response = await axios.get(`${API_URL}/auth/patients`);
+    const response = await api.get("/auth/patients");
     return response.data;
   } catch (error) {
     console.error("Fetch Patients Error:", error);
