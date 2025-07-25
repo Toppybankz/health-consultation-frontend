@@ -21,7 +21,7 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
-    // Extra validation
+    // ✅ Extra validation
     if (!formData.name || !formData.email || !formData.password) {
       setError("Please fill in all fields.");
       return;
@@ -32,10 +32,10 @@ const Register = () => {
       const res = await registerUser(formData);
       console.log("✅ Registration Response:", res); // Debugging
 
-      // ✅ Show success notification
+      // ✅ Show success message
       alert("Registration Successful!\nPlease Login");
 
-      // ✅ Then redirect to login
+      // ✅ Redirect to login after success
       navigate("/login");
     } catch (err) {
       const msg =
@@ -50,7 +50,10 @@ const Register = () => {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-green-700 text-center">Register</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+
+        {/* ✅ Show error if exists */}
+        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -99,6 +102,7 @@ const Register = () => {
           </button>
         </form>
       </div>
+
       <footer className="text-center mt-6 text-gray-600 text-sm">
         <p>About Us | Privacy Policy | Contact: +2348171365447</p>
       </footer>
