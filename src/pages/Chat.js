@@ -7,11 +7,16 @@ import {
   getPatients,
 } from "../services/api";
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
+// ✅ Use live backend for production, fallback to localhost for dev
+const SOCKET_URL =
+  process.env.REACT_APP_SOCKET_URL ||
+  "https://health-backend-2xol.onrender.com";
 
+// ✅ Configure socket with proper path and transports
 const socket = io(SOCKET_URL, {
-  transports: ["websocket"],
+  transports: ["websocket"], // ✅ Avoid long polling issues
   withCredentials: true,
+  path: "/socket.io", // ✅ Explicit path for Render compatibility
 });
 
 const Chat = () => {
@@ -28,12 +33,14 @@ const Chat = () => {
 
   const messagesEndRef = useRef(null);
 
+  // ✅ Auto-scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
+  // ✅ Fetch doctors or patients
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -47,6 +54,7 @@ const Chat = () => {
     fetchUsers();
   }, [userRole]);
 
+  // ✅ Load previous messages for the selected user
   const loadMessages = useCallback(async () => {
     try {
       if (selectedUser && userId) {
@@ -59,6 +67,7 @@ const Chat = () => {
     }
   }, [selectedUser, userId]);
 
+  // ✅ Join saved room on refresh
   useEffect(() => {
     if (room) {
       socket.emit("joinRoom", room);
@@ -66,6 +75,7 @@ const Chat = () => {
     }
   }, [room, loadMessages]);
 
+  // ✅ Listen for new real-time messages
   useEffect(() => {
     const handleIncomingMessage = (newMessage) => {
       if (newMessage.room === room) {
@@ -77,6 +87,7 @@ const Chat = () => {
     return () => socket.off("message", handleIncomingMessage);
   }, [room]);
 
+  // ✅ Switch chat to another user
   const joinRoom = (user) => {
     const newRoom = `private-${[userId, user._id].sort().join("-")}`;
     setRoom(newRoom);
@@ -89,6 +100,7 @@ const Chat = () => {
     loadMessages();
   };
 
+  // ✅ Send message to backend + socket
   const handleSend = async () => {
     if (!message.trim() || !selectedUser) return;
 
