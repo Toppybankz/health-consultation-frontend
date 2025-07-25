@@ -7,7 +7,7 @@ import {
   getPatients,
 } from "../services/api";
 
-// ✅ Use environment variable for socket URL
+// ✅ Use environment variable for Socket.IO URL
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
 const socket = io(SOCKET_URL);
 
@@ -99,7 +99,7 @@ const Chat = () => {
     const newMsg = {
       text: message,
       sender: userId,
-      senderName: userName || "Unknown", // ✅ FIX: Always include senderName
+      senderName: userName || "Unknown", // ✅ Always include senderName
       room,
       receiver: selectedUser._id,
     };
@@ -174,7 +174,9 @@ const Chat = () => {
                 >
                   {/* ✅ Show sender name if not you */}
                   {msg.sender !== userId && (
-                    <p className="text-xs text-gray-600 font-semibold mb-1">{msg.senderName}</p>
+                    <p className="text-xs text-gray-600 font-semibold mb-1">
+                      {msg.senderName}
+                    </p>
                   )}
                   <p>{msg.text}</p>
                 </div>

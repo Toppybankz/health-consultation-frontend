@@ -17,7 +17,7 @@ export const registerUser = async (userData) => {
     const response = await api.post("/auth/register", userData);
     return response.data;
   } catch (error) {
-    console.error("Register Error:", error);
+    console.error("Register Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -28,7 +28,7 @@ export const loginUser = async (userData) => {
     const response = await api.post("/auth/login", userData);
     return response.data;
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("Login Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -39,7 +39,7 @@ export const fetchMessages = async () => {
     const response = await api.get("/chat/messages");
     return response.data;
   } catch (error) {
-    console.error("Fetch Messages Error:", error);
+    console.error("Fetch Messages Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -53,7 +53,7 @@ export const sendMessage = async (messageData) => {
     const response = await api.post("/chat/send", messageData);
     return response.data;
   } catch (error) {
-    console.error("Send Message Error:", error);
+    console.error("Send Message Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -64,7 +64,7 @@ export const getPrivateMessages = async (senderId, receiverId) => {
     const response = await api.get(`/chat/private/${senderId}/${receiverId}`);
     return response.data;
   } catch (error) {
-    console.error("Fetch Private Messages Error:", error);
+    console.error("Fetch Private Messages Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -75,7 +75,7 @@ export const getDoctors = async () => {
     const response = await api.get("/auth/doctors");
     return response.data;
   } catch (error) {
-    console.error("Fetch Doctors Error:", error);
+    console.error("Fetch Doctors Error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -86,7 +86,7 @@ export const getPatients = async () => {
     const response = await api.get("/auth/patients");
     return response.data;
   } catch (error) {
-    console.error("Fetch Patients Error:", error);
+    console.error("Fetch Patients Error:", error.response?.data || error.message);
     throw error;
   }
 };
