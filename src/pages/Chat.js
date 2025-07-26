@@ -68,14 +68,15 @@ const Chat = () => {
 
   useEffect(() => {
     const handleIncomingMessage = (newMessage) => {
-      if (newMessage.room === room) {
+      // ✅ Avoid adding duplicate message for sender
+      if (newMessage.room === room && newMessage.sender !== userId) {
         setMessages((prev) => [...prev, newMessage]);
       }
     };
 
     socket.on("message", handleIncomingMessage);
     return () => socket.off("message", handleIncomingMessage);
-  }, [room]);
+  }, [room, userId]);
 
   const joinRoom = (user) => {
     const newRoom = `private-${[userId, user._id].sort().join("-")}`;
@@ -100,6 +101,7 @@ const Chat = () => {
       receiver: selectedUser._id,
     };
 
+    // ✅ Optimistic update
     setMessages((prev) => [...prev, newMsg]);
 
     try {
