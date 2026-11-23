@@ -1,0 +1,27 @@
+name: Frontend build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "fix/**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Summarize dependency vulnerabilities
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e 'const report = require("./npm-audit.json"); const entries = Object.entries(report.vulnerabilities || {}); console.log("Dependency vulnerability summary:", JSON.stringify(entries.map(([name, item]) => ({ name, severity: item.severity, direct: item.isDirect, range: item.range, fixAvailable: item.fixAvailable })), null, 2));'
+      - name: Build React application
+        run: npm run build
+        env:
+          CI: false
+          NODE_OPTIONS: --openssl-legacy-provider

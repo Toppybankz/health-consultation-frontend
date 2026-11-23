@@ -1,18 +1,16 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
-import {
-  sendMessage,
-  getPrivateMessages,
-  getDoctors,
-  getPatients,
-} from "../services/api";
+import { sendMessage, getPrivateMessages, getDoctors, getPatients, getConversations } from "../services/api";
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
 
-const socket = io(SOCKET_URL, {
-  transports: ["websocket"],
-  withCredentials: true,
-});
+const readSelectedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("selectedUser") || "null");
+  } catch {
+    return null;
+  }
+};
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -21,185 +19,214 @@ const Chat = () => {
   const [userRole] = useState(localStorage.getItem("role") || "patient");
   const [userName] = useState(localStorage.getItem("userName"));
   const [usersList, setUsersList] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(
-    JSON.parse(localStorage.getItem("selectedUser")) || null
-  );
+  const [conversations, setConversations] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(readSelectedUser);
   const [room, setRoom] = useState(localStorage.getItem("chatRoom") || null);
-
+  const [sending, setSending] = useState(false);
+  const [inboxError, setInboxError] = useState("");
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const roomRef = useRef(room);
+  const selectedUserRef = useRef(selectedUser);
+
+  const refreshConversations = useCallback(async () => {
+    try {
+      const result = await getConversations();
+      setConversations(Array.isArray(result) ? result : []);
+      setInboxError("");
+    } catch (error) {
+      setInboxError(error.response?.data?.message || "Unable to load your conversation inbox.");
+    }
+  }, []);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const loadMessages = useCallback(async (otherUser) => {
+    if (!otherUser || !userId) return;
+    try {
+      const result = await getPrivateMessages(userId, otherUser._id || otherUser.id);
+      const requestedId = String(otherUser._id || otherUser.id);
+      const activeId = selectedUserRef.current && String(selectedUserRef.current._id || selectedUserRef.current.id);
+      if (requestedId === activeId) setMessages(Array.isArray(result) ? result : []);
+    } catch (error) {
+      console.error("Error loading messages:", error.message);
+      const requestedId = String(otherUser._id || otherUser.id);
+      const activeId = selectedUserRef.current && String(selectedUserRef.current._id || selectedUserRef.current.id);
+      if (requestedId === activeId) setMessages([]);
+    }
+  }, [userId]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res =
-          userRole === "patient" ? await getDoctors() : await getPatients();
-        setUsersList(res);
+        const result = userRole === "patient" ? await getDoctors() : await getPatients();
+        setUsersList(Array.isArray(result) ? result : []);
       } catch (error) {
         console.error("Error fetching users:", error.message);
       }
     };
     fetchUsers();
-  }, [userRole]);
+    refreshConversations();
+  }, [userRole, refreshConversations]);
 
-  const loadMessages = useCallback(async () => {
-    try {
-      if (selectedUser && userId) {
-        const res = await getPrivateMessages(userId, selectedUser._id);
-        setMessages(Array.isArray(res) ? res : []);
-      }
-    } catch (error) {
-      console.error("Error loading messages:", error.message);
-      setMessages([]);
-    }
-  }, [selectedUser, userId]);
-
+  // Keep one authenticated socket alive. Rejoin the selected room after every reconnect.
   useEffect(() => {
-    if (room) {
-      socket.emit("joinRoom", room);
-      loadMessages();
-    }
-  }, [room, loadMessages]);
+    const token = localStorage.getItem("token");
+    if (!token) return undefined;
 
-  useEffect(() => {
-    const handleIncomingMessage = (newMessage) => {
-      // ✅ Avoid adding duplicate message for sender
-      if (newMessage.room === room && newMessage.sender !== userId) {
-        setMessages((prev) => [...prev, newMessage]);
-      }
+    const socket = io(SOCKET_URL, { transports: ["websocket", "polling"], auth: { token } });
+    socketRef.current = socket;
+
+    const joinSelectedRoom = () => {
+      const participant = selectedUserRef.current;
+      const participantId = participant && (participant._id || participant.id);
+      if (participantId) socket.emit("joinRoom", participantId);
     };
 
+    const handleIncomingMessage = (newMessage) => {
+      if (newMessage.room === roomRef.current && String(newMessage.sender) !== String(userId)) {
+        setMessages((previous) => previous.some((item) => String(item._id) === String(newMessage._id)) ? previous : [...previous, newMessage]);
+      }
+      refreshConversations();
+    };
+
+    socket.on("connect", joinSelectedRoom);
     socket.on("message", handleIncomingMessage);
-    return () => socket.off("message", handleIncomingMessage);
-  }, [room, userId]);
+
+    return () => {
+      socket.off("connect", joinSelectedRoom);
+      socket.off("message", handleIncomingMessage);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [userId, refreshConversations]);
+
+  useEffect(() => {
+    roomRef.current = room;
+    selectedUserRef.current = selectedUser;
+    if (!selectedUser) return;
+    loadMessages(selectedUser);
+    const participantId = selectedUser._id || selectedUser.id;
+    if (socketRef.current?.connected && participantId) socketRef.current.emit("joinRoom", participantId);
+  }, [room, selectedUser, loadMessages]);
 
   const joinRoom = (user) => {
-    const newRoom = `private-${[userId, user._id].sort().join("-")}`;
+    const otherId = user._id || user.id;
+    const previousUser = selectedUserRef.current;
+    const previousId = previousUser && (previousUser._id || previousUser.id);
+    if (socketRef.current?.connected && previousId && String(previousId) !== String(otherId)) {
+      socketRef.current.emit("leaveRoom", previousId);
+    }
+    const newRoom = `private-${[String(userId), String(otherId)].sort().join("-")}`;
+    roomRef.current = newRoom;
+    selectedUserRef.current = user;
     setRoom(newRoom);
     setSelectedUser(user);
-
     localStorage.setItem("chatRoom", newRoom);
     localStorage.setItem("selectedUser", JSON.stringify(user));
-
-    socket.emit("joinRoom", newRoom);
-    loadMessages();
+    setMessages([]);
+    if (socketRef.current?.connected) socketRef.current.emit("joinRoom", otherId);
   };
 
   const handleSend = async () => {
-    if (!message.trim() || !selectedUser) return;
-
-    const newMsg = {
-      text: message,
-      sender: userId,
-      senderName: userName || "Unknown",
-      room,
-      receiver: selectedUser._id,
-    };
-
-    // ✅ Optimistic update
-    setMessages((prev) => [...prev, newMsg]);
-
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage || !selectedUser || sending) return;
+    setSending(true);
     try {
-      await sendMessage(newMsg);
-      socket.emit("sendMessage", newMsg);
+      const savedMessage = await sendMessage({ receiver: selectedUser._id || selectedUser.id, text: trimmedMessage });
+      setMessages((previous) => previous.some((item) => String(item._id) === String(savedMessage._id)) ? previous : [...previous, savedMessage]);
+      setMessage("");
+      await refreshConversations();
     } catch (error) {
-      console.error("Error sending message:", error.message);
+      setInboxError(error.response?.data?.message || error.response?.data?.error || "Message could not be sent.");
+    } finally {
+      setSending(false);
     }
-
-    setMessage("");
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-1/4 bg-white border-r border-gray-300 h-screen overflow-y-auto">
+    <div className="flex h-[calc(100vh-4rem)] min-h-[560px] flex-col bg-gray-100 md:flex-row">
+      <aside className="h-2/5 max-h-64 w-full shrink-0 overflow-y-auto border-b border-gray-300 bg-white md:h-full md:max-h-none md:w-80 md:max-w-sm md:border-b-0 md:border-r">
         <div className="p-4 text-sm text-gray-600 border-b">
           Logged in as: <span className="font-semibold">{userName}</span> ({userRole})
         </div>
-        <h3 className="p-4 font-bold text-green-700">
-          {userRole === "patient" ? "Doctors" : "Patients"}
-        </h3>
-        <ul>
-          {usersList.length === 0 ? (
-            <p className="text-gray-500 text-sm px-4">
-              No {userRole === "patient" ? "doctors" : "patients"} available
-            </p>
+        <section className="border-b border-gray-200">
+          <div className="flex items-center justify-between p-4">
+            <h3 className="font-bold text-green-700">Your conversations</h3>
+            <button type="button" onClick={refreshConversations} className="text-sm text-green-700 hover:underline">Refresh</button>
+          </div>
+          {inboxError && <p role="alert" className="mx-4 mb-3 text-sm text-red-600">{inboxError}</p>}
+          {conversations.length === 0 ? (
+            <p className="px-4 pb-4 text-sm text-gray-500">No conversations yet. Choose someone below to start one.</p>
           ) : (
-            usersList.map((u) => (
-              <li
-                key={u._id}
-                className={`p-3 hover:bg-green-100 cursor-pointer ${
-                  selectedUser?._id === u._id ? "bg-green-200 font-semibold" : ""
-                }`}
-                onClick={() => joinRoom(u)}
-              >
-                {u.name}
-              </li>
-            ))
+            <ul className="pb-2">
+              {conversations.map((conversation) => {
+                const participant = conversation.participant;
+                const lastMessage = conversation.lastMessage;
+                const participantId = participant.id;
+                return (
+                  <li key={participantId}>
+                    <button type="button" onClick={() => joinRoom({ _id: participantId, name: participant.name, role: participant.role })}
+                      className={`w-full px-4 py-3 text-left hover:bg-green-50 ${String(selectedUser?._id || selectedUser?.id) === String(participantId) ? "bg-green-100" : ""}`}>
+                      <span className="block font-semibold text-gray-800">{participant.name}</span>
+                      <span className="block truncate text-xs text-gray-500">{lastMessage?.text || "Conversation started"}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </ul>
+        </section>
+        <section>
+          <h3 className="p-4 font-bold text-green-700">{userRole === "patient" ? "Available doctors" : "Available patients"}</h3>
+          {usersList.length === 0 ? (
+            <p className="text-gray-500 text-sm px-4 pb-4">No {userRole === "patient" ? "doctors" : "patients"} available</p>
+          ) : (
+            <ul className="pb-3">
+              {usersList.map((user) => (
+                <li key={user._id}>
+                  <button type="button" className={`w-full p-3 text-left hover:bg-green-100 ${String(selectedUser?._id || selectedUser?.id) === String(user._id) ? "bg-green-200 font-semibold" : ""}`} onClick={() => joinRoom(user)}>
+                    <span className="block">{user.name}</span><span className="text-xs text-gray-500 capitalize">{user.role}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </aside>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col min-w-0">
         <div className="bg-white shadow px-4 py-3 border-b">
-          <h2 className="text-lg font-bold text-green-700 text-center">
-            {selectedUser
-              ? `Chat with ${selectedUser.name}`
-              : "Select a user to start chat"}
-          </h2>
+          <h2 className="text-lg font-bold text-green-700 text-center">{selectedUser ? `Chat with ${selectedUser.name}` : "Select a conversation or choose a user"}</h2>
         </div>
-
-        <div className="flex-1 flex flex-col p-4">
+        <div className="flex-1 flex flex-col p-4 min-h-0">
           <div className="flex-1 overflow-y-auto bg-white rounded shadow p-4 mb-4">
             {messages.length === 0 ? (
               <p className="text-gray-500 text-center">No messages yet...</p>
             ) : (
               messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`p-2 rounded-lg max-w-xs mb-2 ${
-                    msg.sender === userId
-                      ? "bg-green-100 self-end text-right"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {msg.sender !== userId && (
-                    <p className="text-xs text-gray-600 font-semibold mb-1">
-                      {msg.senderName}
-                    </p>
-                  )}
-                  <p>{msg.text}</p>
+                <div key={msg._id || `${msg.createdAt || "pending"}-${index}`}
+                  className={`p-2 rounded-lg max-w-xs mb-2 ${String(msg.sender) === String(userId) ? "bg-green-100 ml-auto text-right" : "bg-gray-200"}`}>
+                  {String(msg.sender) !== String(userId) && <p className="text-xs text-gray-600 font-semibold mb-1">{msg.senderName}</p>}
+                  <p className="break-words">{msg.text}</p>
+                  <time className="mt-1 block text-xs text-gray-500">{msg.createdAt ? new Date(msg.createdAt).toLocaleString() : ""}</time>
                 </div>
               ))
             )}
             <div ref={messagesEndRef}></div>
           </div>
-
           {selectedUser && (
-            <div className="flex">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 border border-gray-300 rounded-l px-3 py-2"
-              />
-              <button
-                onClick={handleSend}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-r"
-              >
-                Send
+            <form className="flex" onSubmit={(event) => { event.preventDefault(); handleSend(); }}>
+              <input type="text" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Type your message..."
+                className="flex-1 min-w-0 border border-gray-300 rounded-l px-3 py-2" maxLength={5000} />
+              <button type="submit" disabled={sending || !message.trim()} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 rounded-r">
+                {sending ? "Sending..." : "Send"}
               </button>
-            </div>
+            </form>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

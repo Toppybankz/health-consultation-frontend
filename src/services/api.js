@@ -1,101 +1,21 @@
 import axios from "axios";
-
-// ✅ Use environment variable for API base URL or fallback to local
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
-
-// ✅ Create a reusable Axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// ✅ Attach token if available (for future authenticated routes)
+const api = axios.create({ baseURL: API_URL, headers: { "Content-Type": "application/json" } });
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
-
-// ✅ Register User
-export const registerUser = async (userData) => {
-  try {
-    const response = await api.post("/auth/register", userData);
-    return response.data;
-  } catch (error) {
-    console.error("Register Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Login User
-export const loginUser = async (userData) => {
-  try {
-    const response = await api.post("/auth/login", userData);
-    return response.data;
-  } catch (error) {
-    console.error("Login Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Fetch All Group Chat Messages
-export const fetchMessages = async () => {
-  try {
-    const response = await api.get("/chat/messages");
-    return response.data;
-  } catch (error) {
-    console.error("Fetch Messages Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Alias for getMessages (to match Chat.js usage)
+export const registerUser = async (userData) => (await api.post("/auth/register", userData)).data;
+export const loginUser = async (userData) => (await api.post("/auth/login", userData)).data;
+export const fetchMessages = async () => (await api.get("/chat/messages")).data;
 export const getMessages = fetchMessages;
-
-// ✅ Send Chat Message (Group or Private)
-export const sendMessage = async (messageData) => {
-  try {
-    const response = await api.post("/chat/send", messageData);
-    return response.data;
-  } catch (error) {
-    console.error("Send Message Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Fetch Private Messages Between Two Users
-export const getPrivateMessages = async (senderId, receiverId) => {
-  try {
-    const response = await api.get(`/chat/private/${senderId}/${receiverId}`);
-    return response.data;
-  } catch (error) {
-    console.error("Fetch Private Messages Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Fetch All Doctors
-export const getDoctors = async () => {
-  try {
-    const response = await api.get("/auth/doctors");
-    return response.data;
-  } catch (error) {
-    console.error("Fetch Doctors Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// ✅ Fetch All Patients
-export const getPatients = async () => {
-  try {
-    const response = await api.get("/auth/patients");
-    return response.data;
-  } catch (error) {
-    console.error("Fetch Patients Error:", error.response?.data || error.message);
-    throw error;
-  }
-};
+export const sendMessage = async (messageData) => (await api.post("/chat/send", messageData)).data;
+export const getPrivateMessages = async (senderId, receiverId) => (await api.get(`/chat/private/${senderId}/${receiverId}`)).data;
+export const getConversations = async () => (await api.get("/chat/conversations")).data;
+export const getDoctors = async () => (await api.get("/auth/doctors")).data;
+export const getPatients = async () => (await api.get("/auth/patients")).data;
+export const getAdminOverview = async () => (await api.get("/admin/overview")).data;
+export const getAdminUsers = async () => (await api.get("/admin/users")).data;
+export const updateDoctorStatus = async (id, status) => (await api.patch(`/admin/doctors/${id}/status`, { status })).data;
+export const updateUserStatus = async (id, status) => (await api.patch(`/admin/users/${id}/status`, { status })).data;
