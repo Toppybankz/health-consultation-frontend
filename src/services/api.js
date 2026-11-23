@@ -12,6 +12,7 @@ export const fetchMessages = async () => (await api.get("/chat/messages")).data;
 export const getMessages = fetchMessages;
 export const sendMessage = async (messageData) => (await api.post("/chat/send", messageData)).data;
 export const getPrivateMessages = async (senderId, receiverId) => (await api.get(`/chat/private/${senderId}/${receiverId}`)).data;
+export const getConversations = async () => (await api.get("/chat/conversations")).data;
 export const getDoctors = async () => (await api.get("/auth/doctors")).data;
 export const getPatients = async () => (await api.get("/auth/patients")).data;
 export const getAdminOverview = async () => (await api.get("/admin/overview")).data;
