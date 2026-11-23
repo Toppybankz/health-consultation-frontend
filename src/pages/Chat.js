@@ -114,6 +114,11 @@ const Chat = () => {
 
   const joinRoom = (user) => {
     const otherId = user._id || user.id;
+    const previousUser = selectedUserRef.current;
+    const previousId = previousUser && (previousUser._id || previousUser.id);
+    if (socketRef.current?.connected && previousId && String(previousId) !== String(otherId)) {
+      socketRef.current.emit("leaveRoom", previousId);
+    }
     const newRoom = `private-${[String(userId), String(otherId)].sort().join("-")}`;
     roomRef.current = newRoom;
     selectedUserRef.current = user;
