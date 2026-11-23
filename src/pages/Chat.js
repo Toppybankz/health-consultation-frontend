@@ -147,8 +147,8 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-[560px] bg-gray-100">
-      <aside className="w-full max-w-sm bg-white border-r border-gray-300 overflow-y-auto">
+    <div className="flex h-[calc(100vh-4rem)] min-h-[560px] flex-col bg-gray-100 md:flex-row">
+      <aside className="h-2/5 max-h-64 w-full shrink-0 overflow-y-auto border-b border-gray-300 bg-white md:h-full md:max-h-none md:w-80 md:max-w-sm md:border-b-0 md:border-r">
         <div className="p-4 text-sm text-gray-600 border-b">
           Logged in as: <span className="font-semibold">{userName}</span> ({userRole})
         </div>
