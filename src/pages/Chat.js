@@ -47,10 +47,14 @@ const Chat = () => {
     if (!otherUser || !userId) return;
     try {
       const result = await getPrivateMessages(userId, otherUser._id || otherUser.id);
-      setMessages(Array.isArray(result) ? result : []);
+      const requestedId = String(otherUser._id || otherUser.id);
+      const activeId = selectedUserRef.current && String(selectedUserRef.current._id || selectedUserRef.current.id);
+      if (requestedId === activeId) setMessages(Array.isArray(result) ? result : []);
     } catch (error) {
       console.error("Error loading messages:", error.message);
-      setMessages([]);
+      const requestedId = String(otherUser._id || otherUser.id);
+      const activeId = selectedUserRef.current && String(selectedUserRef.current._id || selectedUserRef.current.id);
+      if (requestedId === activeId) setMessages([]);
     }
   }, [userId]);
 
