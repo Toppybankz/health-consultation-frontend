@@ -4,6 +4,14 @@ import { sendMessage, getPrivateMessages, getDoctors, getPatients, getConversati
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
 
+const readSelectedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("selectedUser") || "null");
+  } catch {
+    return null;
+  }
+};
+
 const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
@@ -12,12 +20,14 @@ const Chat = () => {
   const [userName] = useState(localStorage.getItem("userName"));
   const [usersList, setUsersList] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(JSON.parse(localStorage.getItem("selectedUser")) || null);
+  const [selectedUser, setSelectedUser] = useState(readSelectedUser);
   const [room, setRoom] = useState(localStorage.getItem("chatRoom") || null);
   const [sending, setSending] = useState(false);
   const [inboxError, setInboxError] = useState("");
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const roomRef = useRef(room);
+  const selectedUserRef = useRef(selectedUser);
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -46,24 +56,46 @@ const Chat = () => {
     refreshConversations();
   }, [userRole, refreshConversations]);
 
+  // Keep one authenticated socket alive. Rejoin the selected room after every reconnect.
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return undefined;
+
     const socket = io(SOCKET_URL, { transports: ["websocket", "polling"], auth: { token } });
     socketRef.current = socket;
+
+    const joinSelectedRoom = () => {
+      const participant = selectedUserRef.current;
+      const participantId = participant && (participant._id || participant.id);
+      if (participantId) socket.emit("joinRoom", participantId);
+    };
+
     const handleIncomingMessage = (newMessage) => {
-      if (newMessage.room === room && String(newMessage.sender) !== String(userId)) {
+      if (newMessage.room === roomRef.current && String(newMessage.sender) !== String(userId)) {
         setMessages((previous) => previous.some((item) => String(item._id) === String(newMessage._id)) ? previous : [...previous, newMessage]);
       }
       refreshConversations();
     };
+
+    socket.on("connect", joinSelectedRoom);
     socket.on("message", handleIncomingMessage);
+
     return () => {
+      socket.off("connect", joinSelectedRoom);
       socket.off("message", handleIncomingMessage);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [room, userId, refreshConversations]);
+  }, [userId, refreshConversations]);
+
+  useEffect(() => {
+    roomRef.current = room;
+    selectedUserRef.current = selectedUser;
+    if (!selectedUser) return;
+    loadMessages(selectedUser);
+    const participantId = selectedUser._id || selectedUser.id;
+    if (socketRef.current?.connected && participantId) socketRef.current.emit("joinRoom", participantId);
+  }, [room, selectedUser]); // loadMessages is stable for the logged-in user.
 
   const loadMessages = useCallback(async (otherUser) => {
     if (!otherUser || !userId) return;
@@ -76,21 +108,18 @@ const Chat = () => {
     }
   }, [userId]);
 
-  useEffect(() => {
-    if (!selectedUser) return;
-    loadMessages(selectedUser);
-    if (socketRef.current) socketRef.current.emit("joinRoom", selectedUser._id || selectedUser.id);
-  }, [selectedUser, loadMessages]);
-
   const joinRoom = (user) => {
     const otherId = user._id || user.id;
     const newRoom = `private-${[String(userId), String(otherId)].sort().join("-")}`;
+    roomRef.current = newRoom;
+    selectedUserRef.current = user;
     setRoom(newRoom);
     setSelectedUser(user);
     localStorage.setItem("chatRoom", newRoom);
     localStorage.setItem("selectedUser", JSON.stringify(user));
     setMessages([]);
-    if (socketRef.current) socketRef.current.emit("joinRoom", otherId);
+    if (socketRef.current?.connected) socketRef.current.emit("joinRoom", otherId);
+    loadMessages(user);
   };
 
   const handleSend = async () => {
@@ -193,4 +222,5 @@ const Chat = () => {
     </div>
   );
 };
+
 export default Chat;
