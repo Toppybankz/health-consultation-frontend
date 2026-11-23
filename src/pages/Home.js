@@ -2,122 +2,111 @@ import React from "react";
 import { Link } from "react-router-dom";
 import heroImg from "../assets/doctor.jpg";
 
-const Home = () => {
-  return (
-    <div>
-      {/* Hero Section */}
-      <section
-        className="relative bg-cover h-[80vh] md:h-[90vh] flex items-center"
-        style={{
-          backgroundImage: `url(${heroImg})`,
-          backgroundPosition: "center top"
-        }}
-      >
-        <div className="bg-black bg-opacity-40 absolute inset-0"></div>
-        <div className="relative z-10 max-w-3xl mx-auto text-center text-white px-4">
-          <h1 className="text-3xl md:text-5xl font-bold mb-4">
-            Welcome to Health Consultation
-          </h1>
-          <p className="text-base md:text-lg mb-6">
-            Connect with doctors and get real-time advice from experts for free.
-          </p>
+const features = [
+  {
+    number: "01",
+    title: "Patient and doctor accounts",
+    description: "Separate registration and sign-in journeys for patients and healthcare professionals.",
+  },
+  {
+    number: "02",
+    title: "Doctor approval workflow",
+    description: "New doctor applications remain pending until an administrator reviews and approves them.",
+  },
+  {
+    number: "03",
+    title: "Private real-time messaging",
+    description: "Approved participants can exchange messages in authenticated private conversations.",
+  },
+  {
+    number: "04",
+    title: "Administrator oversight",
+    description: "A protected dashboard supports account review and user-status management.",
+  },
+];
+
+const Home = () => (
+  <div className="bg-white text-slate-800">
+    <section
+      className="relative flex min-h-[520px] items-center bg-cover bg-center md:min-h-[620px]"
+      style={{ backgroundImage: `url(${heroImg})` }}
+    >
+      <div className="absolute inset-0 bg-slate-950/65" />
+      <div className="relative mx-auto w-full max-w-6xl px-6 py-20 text-white">
+        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          Digital health consultation platform
+        </p>
+        <h1 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
+          A clearer way to connect patients and healthcare professionals.
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
+          A portfolio demonstration of patient and doctor accounts, administrator approval,
+          and private real-time communication in one web application.
+        </p>
+        <div className="mt-9 flex flex-wrap gap-4">
           <Link
             to="/register"
-            className="bg-green-600 hover:bg-green-700 text-white px-5 md:px-6 py-3 rounded-lg font-semibold text-sm md:text-base"
+            className="rounded-lg bg-emerald-500 px-6 py-3 font-semibold text-white transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-900"
           >
-            Get Started
+            Create an account
+          </Link>
+          <Link
+            to="/login"
+            className="rounded-lg border border-white/70 px-6 py-3 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            Sign in
           </Link>
         </div>
-      </section>
+      </div>
+    </section>
 
-      {/* Why Choose Us */}
-      <section className="py-10 bg-gray-50">
-        <h2 className="text-3xl font-bold text-center mb-8 text-green-700">Why Choose Us?</h2>
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
-          <div className="bg-white p-6 shadow-md rounded-lg text-center">
-            <span className="text-green-600 text-4xl mb-4 block">💬</span>
-            <h3 className="font-semibold text-xl">Free Service</h3>
-            <p className="text-gray-600 mt-2">Consult doctors without any cost.</p>
-          </div>
-          <div className="bg-white p-6 shadow-md rounded-lg text-center">
-            <span className="text-green-600 text-4xl mb-4 block">⏰</span>
-            <h3 className="font-semibold text-xl">24/7 Support</h3>
-            <p className="text-gray-600 mt-2">Get advice anytime, anywhere.</p>
-          </div>
-          <div className="bg-white p-6 shadow-md rounded-lg text-center">
-            <span className="text-green-600 text-4xl mb-4 block">🔒</span>
-            <h3 className="font-semibold text-xl">Secure & Reliable</h3>
-            <p className="text-gray-600 mt-2">Your privacy is our priority.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonies Section */}
-      <section className="py-12 bg-white">
-        <h2 className="text-3xl font-bold text-center text-green-700 mb-8">What Our Users Say</h2>
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
-          {[
-            {
-              name: "Jane Doe",
-              feedback: "Health Consult connected me with a doctor in minutes. Best experience ever!"
-            },
-            {
-              name: "John Smith",
-              feedback: "Very fast and reliable consultation service. Totally free!"
-            },
-            {
-              name: "Mary Johnson",
-              feedback: "Highly recommended. The doctors are professional and friendly."
-            }
-          ].map((item, index) => (
-            <div key={index} className="bg-gray-50 shadow-md p-6 rounded-lg text-center">
-              <p className="text-gray-700 italic mb-4">"{item.feedback}"</p>
-              <h4 className="font-semibold text-green-700">- {item.name}</h4>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Health Tips */}
-      <section className="py-10">
-        <h2 className="text-3xl font-bold text-center text-green-700 mb-8">Health Tips from Experts</h2>
-        <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto px-4">
-          {[
-            { tip: "Drink plenty of water daily", doctor: "Dr. Adams" },
-            { tip: "Exercise 30 mins daily", doctor: "Dr. Susan" },
-            { tip: "Eat more fruits & veggies", doctor: "Dr. Mike" },
-            { tip: "Get enough sleep", doctor: "Dr. Jane" },
-            { tip: "Manage stress effectively", doctor: "Dr. Paul" },
-            { tip: "Regular health checkups", doctor: "Dr. Grace" },
-            { tip: "Avoid smoking", doctor: "Dr. Samuel" },
-            { tip: "Limit processed foods", doctor: "Dr. Rose" },
-          ].map((item, index) => (
-            <div key={index} className="bg-white p-4 shadow-md rounded-lg">
-              <p className="font-semibold text-gray-800">{item.tip}</p>
-              <p className="text-sm text-gray-500 mt-1">- {item.doctor}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* About & Privacy */}
-      <section className="bg-gray-100 py-8 text-center">
-        <h2 className="text-2xl font-semibold mb-2">About Us</h2>
-        <p className="max-w-3xl mx-auto text-gray-600 mb-6">
-          Health Consult is your trusted platform for free online health consultations. We prioritize your well-being and ensure professional guidance.
+    <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+      <div className="max-w-2xl">
+        <p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">Platform capabilities</p>
+        <h2 className="mt-3 text-3xl font-bold text-slate-900 md:text-4xl">
+          Designed around clear roles and controlled access
+        </h2>
+        <p className="mt-4 leading-7 text-slate-600">
+          The application demonstrates how different users interact with a shared service while
+          keeping account approval and administrative permissions separate.
         </p>
-        <h3 className="text-lg font-semibold">Privacy Policy</h3>
-        <p className="max-w-3xl mx-auto text-gray-600">
-          Your information is safe with us. We do not share your data with third parties.
-        </p>
-      </section>
+      </div>
+      <div className="mt-10 grid gap-5 sm:grid-cols-2">
+        {features.map((feature) => (
+          <article key={feature.number} className="rounded-2xl border border-slate-200 bg-slate-50 p-7">
+            <p className="text-sm font-bold tracking-widest text-emerald-700">{feature.number}</p>
+            <h3 className="mt-4 text-xl font-semibold text-slate-900">{feature.title}</h3>
+            <p className="mt-3 leading-7 text-slate-600">{feature.description}</p>
+          </article>
+        ))}
+      </div>
+    </section>
 
-      {/* ✅ Gray Background Footer */}
-      <footer className="text-center mt-6 text-gray-600 text-sm py-4 bg-gray-200">
-        Copyright © 2025 Health Consultation Agency.
-      </footer>
-    </div>
-  );
-};
+    <section className="bg-slate-900 text-white">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-2 md:items-center md:py-20">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">How it works</p>
+          <h2 className="mt-3 text-3xl font-bold md:text-4xl">A simple, role-based journey</h2>
+        </div>
+        <ol className="space-y-5 text-slate-200">
+          <li><strong className="text-white">1. Register.</strong> Patients can create an account; doctor applications enter a pending review state.</li>
+          <li><strong className="text-white">2. Review.</strong> An administrator reviews doctor applications and manages account status.</li>
+          <li><strong className="text-white">3. Connect.</strong> Approved patients and doctors can access private messaging.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section className="mx-auto max-w-6xl px-6 py-14">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 md:p-8">
+        <h2 className="text-lg font-bold text-amber-950">Demonstration project notice</h2>
+        <p className="mt-2 leading-7 text-amber-900">
+          This application is a software portfolio demonstration, not a medical service.
+          Do not submit real medical records or rely on it for diagnosis, treatment, or emergency care.
+          Use synthetic information only.
+        </p>
+      </div>
+    </section>
+  </div>
+);
 
 export default Home;
