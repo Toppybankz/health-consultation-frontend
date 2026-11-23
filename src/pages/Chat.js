@@ -43,6 +43,17 @@ const Chat = () => {
     if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const loadMessages = useCallback(async (otherUser) => {
+    if (!otherUser || !userId) return;
+    try {
+      const result = await getPrivateMessages(userId, otherUser._id || otherUser.id);
+      setMessages(Array.isArray(result) ? result : []);
+    } catch (error) {
+      console.error("Error loading messages:", error.message);
+      setMessages([]);
+    }
+  }, [userId]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -95,18 +106,7 @@ const Chat = () => {
     loadMessages(selectedUser);
     const participantId = selectedUser._id || selectedUser.id;
     if (socketRef.current?.connected && participantId) socketRef.current.emit("joinRoom", participantId);
-  }, [room, selectedUser]); // loadMessages is stable for the logged-in user.
-
-  const loadMessages = useCallback(async (otherUser) => {
-    if (!otherUser || !userId) return;
-    try {
-      const result = await getPrivateMessages(userId, otherUser._id || otherUser.id);
-      setMessages(Array.isArray(result) ? result : []);
-    } catch (error) {
-      console.error("Error loading messages:", error.message);
-      setMessages([]);
-    }
-  }, [userId]);
+  }, [room, selectedUser, loadMessages]);
 
   const joinRoom = (user) => {
     const otherId = user._id || user.id;
@@ -119,7 +119,6 @@ const Chat = () => {
     localStorage.setItem("selectedUser", JSON.stringify(user));
     setMessages([]);
     if (socketRef.current?.connected) socketRef.current.emit("joinRoom", otherId);
-    loadMessages(user);
   };
 
   const handleSend = async () => {
