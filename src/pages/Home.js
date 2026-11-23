@@ -98,11 +98,12 @@ const Home = () => (
 
     <section className="mx-auto max-w-6xl px-6 py-14">
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 md:p-8">
-        <h2 className="text-lg font-bold text-amber-950">Demonstration project notice</h2>
+        <h2 className="text-lg font-bold text-amber-950">Demo Environment Notice</h2>
         <p className="mt-2 leading-7 text-amber-900">
-          This application is a software portfolio demonstration, not a medical service.
-          Do not submit real medical records or rely on it for diagnosis, treatment, or emergency care.
-          Use synthetic information only.
+          This platform is provided for demonstration and evaluation purposes only.
+          Please use fictional information when exploring its features. Do not enter personal
+          medical information or use the platform for medical advice, diagnosis, treatment,
+          or emergency assistance.
         </p>
       </div>
     </section>
